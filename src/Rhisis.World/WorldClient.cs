@@ -131,6 +131,7 @@ namespace Rhisis.World
                 character.FaceId = this.Player.VisualAppearance.FaceId;
                 character.SkinSetId = this.Player.VisualAppearance.SkinSetId;
                 character.Level = this.Player.Object.Level;
+                character.ClassId = this.Player.PlayerData.JobId;
 
                 character.Gold = this.Player.PlayerData.Gold;
                 character.Experience = this.Player.PlayerData.Experience;

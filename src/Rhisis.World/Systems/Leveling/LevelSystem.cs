@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using Rhisis.Core.Common.Formulas;
 using Rhisis.Core.Data;
 using Rhisis.Core.DependencyInjection;
 using Rhisis.Core.Resources;
@@ -7,6 +6,7 @@ using Rhisis.Core.Structures.Game;
 using Rhisis.World.Game.Core;
 using Rhisis.World.Game.Core.Systems;
 using Rhisis.World.Game.Entities;
+using Rhisis.World.Game.Helpers;
 using Rhisis.World.Packets;
 using Rhisis.World.Systems.Leveling.EventArgs;
 
@@ -43,6 +43,9 @@ namespace Rhisis.World.Systems.Leveling
                 case ExperienceEventArgs e:
                     this.GiveExperience(player, e);
                     break;
+                case ChangeJobEventArgs e:
+                    this.ChangeJob(player, e);
+                    break;
                 default:
                     this._logger.LogWarning("Unknown level system action type: {0} for player {1}", args.GetType(), entity.Object.Name);
                     break;
@@ -56,9 +59,26 @@ namespace Rhisis.World.Systems.Leveling
         /// <param name="e">Experience event info.</param>
         private void GiveExperience(IPlayerEntity player, ExperienceEventArgs e)
         {
-            // Eastrall: Quick fix for not going beyond level 15. Will be removed with job system.
-            if (player.Object.Level >= 15)
+            int baseJobLevelLimit = (int)DefineJob.JobMax.MAX_JOB_LEVEL;
+            int expertJobLevelLimit = (int)DefineJob.JobMax.MAX_JOB_LEVEL + (int)DefineJob.JobMax.MAX_EXP_LEVEL;
+
+            if ((player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_BASE && player.Object.Level >= baseJobLevelLimit) ||
+                (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_EXPERT && player.Object.Level >= expertJobLevelLimit))
+            {
+                if (player.PlayerData.Experience != 0)
+                {
+                    player.PlayerData.Experience = 0;
+                    WorldPacketFactory.SendPlayerExperience(player);
+                }
                 return;
+            }
+
+            if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_PRO && player.Object.Level > (int)DefineJob.JobMax.MAX_LEVEL)
+            {
+                player.PlayerData.Experience = 0;
+                player.Object.Level = (int)DefineJob.JobMax.MAX_LEVEL;
+                return;
+            }
 
             long experience = this.CalculateExtraExperience(player, e.Experience);
 
@@ -132,15 +152,43 @@ namespace Rhisis.World.Systems.Leveling
                 player.Statistics.StatPoints += statPoints;
             }
 
-            int strength = player.Attributes[DefineAttributes.STR];
-            int stamina = player.Attributes[DefineAttributes.STA];
-            int dexterity = player.Attributes[DefineAttributes.DEX];
-            int intelligence = player.Attributes[DefineAttributes.INT];
-
             player.PlayerData.Experience = 0;
-            player.Health.Hp = HealthFormulas.GetMaxOriginHp(player.Object.Level, stamina, player.PlayerData.JobData.MaxHpFactor);
-            player.Health.Mp = HealthFormulas.GetMaxOriginMp(player.Object.Level, intelligence, player.PlayerData.JobData.MaxMpFactor, true);
-            player.Health.Fp = HealthFormulas.GetMaxOriginFp(player.Object.Level, stamina, dexterity, strength, player.PlayerData.JobData.MaxFpFactor, true);
+            PlayerHelper.SetPoints(player, DefineAttributes.HP, PlayerHelper.GetMaxOriginHp(player));
+            PlayerHelper.SetPoints(player, DefineAttributes.MP, PlayerHelper.GetMaxOriginMp(player));
+            PlayerHelper.SetPoints(player, DefineAttributes.FP, PlayerHelper.GetMaxOriginFp(player));
+        }
+
+        /// <summary>
+        /// Changes player's job.
+        /// </summary>
+        /// <param name="player">Player entity.</param>
+        /// <param name="e">Change job event.</param>
+        private void ChangeJob(IPlayerEntity player, ChangeJobEventArgs e)
+        {
+            if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_BASE)
+            {
+                player.Object.Level = (int)DefineJob.JobMax.MAX_JOB_LEVEL;
+            }
+            else if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_EXPERT)
+            {
+                player.Object.Level = (int)DefineJob.JobMax.MAX_JOB_LEVEL + (int)DefineJob.JobMax.MAX_EXP_LEVEL;
+            }
+
+            player.PlayerData.Job = (DefineJob.Job)e.JobId;
+            PlayerHelper.SetPoints(player, DefineAttributes.HP, PlayerHelper.GetMaxHP(player));
+            PlayerHelper.SetPoints(player, DefineAttributes.MP, PlayerHelper.GetMaxMP(player));
+            PlayerHelper.SetPoints(player, DefineAttributes.FP, PlayerHelper.GetMaxFP(player));
+            // TODO: Restat
+            // TODO: set skills
+
+            WorldPacketFactory.SendUpdateAttributes(player, DefineAttributes.HP, PlayerHelper.GetPoints(player, DefineAttributes.HP));
+            WorldPacketFactory.SendUpdateAttributes(player, DefineAttributes.MP, PlayerHelper.GetPoints(player, DefineAttributes.MP));
+            WorldPacketFactory.SendUpdateAttributes(player, DefineAttributes.FP, PlayerHelper.GetPoints(player, DefineAttributes.FP));
+            WorldPacketFactory.SendPlayerSetLevel(player, player.Object.Level);
+            WorldPacketFactory.SendPlayerStatsPoints(player);
+            WorldPacketFactory.SendPlayerExperience(player);
+            WorldPacketFactory.SendPlayerJobSkills(player);
+            WorldPacketFactory.SendSpecialEffect(player, DefineSpecialEffects.XI_GEN_LEVEL_UP01);
         }
     }
 }

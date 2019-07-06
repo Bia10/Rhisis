@@ -21,6 +21,7 @@
             MAX_TROUPE_SKILL = 9,
             MAX_MASTER_SKILL = 1,
             MAX_HERO_SKILL = 1,
+            MAX_SKILLS = MAX_JOB_SKILL + MAX_EXPERT_SKILL + MAX_PRO_SKILL + MAX_MASTER_SKILL + MAX_HERO_SKILL,
 
             MAX_JOB_LEVEL = 15,
             MAX_EXP_LEVEL = 45,

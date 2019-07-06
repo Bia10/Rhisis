@@ -112,7 +112,7 @@ namespace Rhisis.World.Handlers
                 Gold = character.Gold,
                 Authority = (AuthorityType)character.User.Authority,
                 Experience = character.Experience,
-                JobId = character.ClassId
+                Job = (DefineJob.Job)character.ClassId
             };
 
             client.Player.Moves = new MovableComponent

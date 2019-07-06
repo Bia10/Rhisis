@@ -1,4 +1,5 @@
-﻿using Rhisis.Network;
+﻿using Rhisis.Core.Data;
+using Rhisis.Network;
 using Rhisis.Network.Packets;
 using Rhisis.World.Game.Core;
 using Rhisis.World.Game.Entities;
@@ -62,12 +63,32 @@ namespace Rhisis.World.Packets
                 packet.StartNewMergedPacket(player.Id, SnapshotType.SETEXPERIENCE);
                 packet.Write(player.PlayerData.Experience);
                 packet.Write((short)player.Object.Level);
-                packet.Write(0);
+                packet.Write(0); // TODO: total skill points
                 packet.Write((int)player.Statistics.SkillPoints);
                 packet.Write(long.MaxValue); // death exp
                 packet.Write((short)player.PlayerData.DeathLevel);
 
                 player.Connection.Send(packet);
+            }
+        }
+
+        public static void SendPlayerJobSkills(IPlayerEntity player)
+        {
+            using (var packet = new FFPacket())
+            {
+                packet.StartNewMergedPacket(player.Id, SnapshotType.SET_JOB_SKILL);
+                packet.Write(player.PlayerData.JobId);
+
+                for (int i = 0; i < (int)DefineJob.JobMax.MAX_SKILLS; ++i)
+                {
+                    packet.Write(-1); // skill id
+                    packet.Write(0); // skill level
+                }
+
+                for (int i = 0; i < (int)DefineJob.JobMax.MAX_JOB; i++)
+                    packet.Write(int.MaxValue);
+
+                SendToVisible(packet, player, sendToPlayer: true);
             }
         }
     }

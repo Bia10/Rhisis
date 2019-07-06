@@ -28,6 +28,7 @@ namespace Rhisis.Core.Resources
         public static readonly string TextClientPath = Path.Combine(DataSub1Path, "textClient.inc");
         public static readonly string ExpTablePath = Path.Combine(DataSub0Path, "expTable.inc");
         public static readonly string DeathPenalityPath = Path.Combine(ResourcePath, "deathPenality.json");
+        public static readonly string EtcIncPath = Path.Combine(DataSub1Path, "etc.inc");
 
         // Logs messages
         public const string UnableLoadMapMessage = "Unable to load map '{0}'. Reason: {1}.";

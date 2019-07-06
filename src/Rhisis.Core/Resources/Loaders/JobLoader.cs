@@ -1,7 +1,11 @@
 ﻿using Microsoft.Extensions.Logging;
+using Rhisis.Core.Data;
+using Rhisis.Core.Extensions;
+using Rhisis.Core.Resources.Include;
 using Rhisis.Core.Structures.Game;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Rhisis.Core.Resources.Loaders
 {
@@ -10,6 +14,7 @@ namespace Rhisis.Core.Resources.Loaders
         private readonly ILogger<JobLoader> _logger;
         private readonly IDictionary<int, JobData> _jobsData;
         private readonly DefineLoader _defines;
+        private readonly TextLoader _texts;
 
         /// <summary>
         /// Gets job by his id.
@@ -23,11 +28,13 @@ namespace Rhisis.Core.Resources.Loaders
         /// </summary>
         /// <param name="logger">Logger</param>
         /// <param name="defines">Defines</param>
-        public JobLoader(ILogger<JobLoader> logger, DefineLoader defines)
+        /// <param name="texts">Texts</param>
+        public JobLoader(ILogger<JobLoader> logger, DefineLoader defines, TextLoader texts)
         {
             this._logger = logger;
             this._jobsData = new Dictionary<int, JobData>();
             this._defines = defines;
+            this._texts = texts;
         }
 
         /// <inheritdoc />
@@ -39,7 +46,7 @@ namespace Rhisis.Core.Resources.Loaders
                 return;
             }
 
-            using (var propJob = new ResourceTableFile(GameResources.JobPropPath, -1, new [] { '\t', ' ', '\r' }, this._defines.Defines, null))
+            using (var propJob = new ResourceTableFile(GameResources.JobPropPath, -1, new[] { '\t', ' ', '\r' }, this._defines.Defines, null))
             {
                 var jobs = propJob.GetRecords<JobData>();
 
@@ -52,6 +59,28 @@ namespace Rhisis.Core.Resources.Loaders
                     }
                     else
                         this._jobsData.Add(job.Id, job);
+                }
+            }
+
+            using (var etcFile = new IncludeFile(GameResources.EtcIncPath))
+            {
+                Block jobBlock = etcFile.GetBlock("job");
+
+                if (jobBlock != null)
+                {
+                    IEnumerable<IGrouping<int, string>> groups = jobBlock.UnknownStatements.GroupBy(4);
+
+                    foreach (var group in groups)
+                    {
+                        int jobId = this._defines.Defines[group.ElementAt(0)];
+
+                        if (this._jobsData.TryGetValue(jobId, out JobData jobData))
+                        {
+                            jobData.Name = this._texts.Texts[group.ElementAt(1)];
+                            jobData.BaseJob = (DefineJob.Job)this._defines.Defines[group.ElementAt(2)];
+                            jobData.Type = (DefineJob.JobType)this._defines.Defines[group.ElementAt(3)];
+                        }
+                    }
                 }
             }
 

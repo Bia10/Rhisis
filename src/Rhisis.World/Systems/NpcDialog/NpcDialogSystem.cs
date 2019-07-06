@@ -1,10 +1,13 @@
 ﻿using NLog;
+using Rhisis.Core.Data;
 using Rhisis.Core.Structures.Game;
 using Rhisis.Core.Structures.Game.Dialogs;
 using Rhisis.World.Game.Core;
 using Rhisis.World.Game.Core.Systems;
 using Rhisis.World.Game.Entities;
 using Rhisis.World.Packets;
+using Rhisis.World.Systems.Leveling;
+using Rhisis.World.Systems.Leveling.EventArgs;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -51,6 +54,10 @@ namespace Rhisis.World.Systems.NpcDialog
                 return;
             }
 
+            // Temporary
+            if (this.ProcessJobChange(player, npcEntity))
+                return;
+
             if (!npcEntity.Data.HasDialog)
             {
                 Logger.Error("DialogSystem: NPC '{0}' doesn't have a dialog.", npcEntity.Object.Name);
@@ -82,6 +89,17 @@ namespace Rhisis.World.Systems.NpcDialog
             }
 
             WorldPacketFactory.SendDialog(player, dialogTexts, npcEntity.Data.Dialog.Links);
+        }
+
+        private bool ProcessJobChange(IPlayerEntity player, INpcEntity npc)
+        {
+            if (npc.Object.Name == "MaFl_Mustang")
+            {
+                player.NotifySystem<LevelSystem>(new ChangeJobEventArgs((int)DefineJob.Job.JOB_MERCENARY));
+                return true;
+            }
+
+            return false;
         }
     }
 }

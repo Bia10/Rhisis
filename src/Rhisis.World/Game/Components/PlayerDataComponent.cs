@@ -44,18 +44,25 @@ namespace Rhisis.World.Game.Components
         public long Experience { get; set; }
 
         /// <summary>
-        /// Gets or sets the Job Id.
+        /// Gets or sets the player's job.
         /// </summary>
-        public int JobId
+        public DefineJob.Job Job
         {
-            get => this._jobId;
+            get => this._job;
             set
             {
-                this._jobId = value;
-                this.JobData = DependencyContainer.Instance.Resolve<JobLoader>().GetJob(this._jobId);
+                this._job = value;
+
+                if (this.JobData?.Id != (int)this._job)
+                    this.JobData = DependencyContainer.Instance.Resolve<JobLoader>().GetJob((int)this._job);
             }
         }
-        private int _jobId;
+        private DefineJob.Job _job;
+
+        /// <summary>
+        /// Gets the player's job id.
+        /// </summary>
+        public int JobId => (int)this._job;
 
         /// <summary>
         /// Gets the job's data.
