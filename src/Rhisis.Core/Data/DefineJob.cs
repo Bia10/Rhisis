@@ -27,6 +27,7 @@
             MAX_EXP_LEVEL = 45,
             MAX_PRO_LEVEL = 30,
             MAX_TROUPE_LEVEL = 1,
+            MAX_EXPERT_LEVEL = MAX_JOB_LEVEL + MAX_EXP_LEVEL,
 
             MAX_LEGEND_LEVEL = 129,
             MAX_MONSTER_LEVEL = 160,

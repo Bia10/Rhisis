@@ -14,7 +14,6 @@ namespace Rhisis.Core.Resources.Loaders
         private readonly ILogger<JobLoader> _logger;
         private readonly IDictionary<int, JobData> _jobsData;
         private readonly DefineLoader _defines;
-        private readonly TextLoader _texts;
 
         /// <summary>
         /// Gets job by his id.
@@ -28,13 +27,11 @@ namespace Rhisis.Core.Resources.Loaders
         /// </summary>
         /// <param name="logger">Logger</param>
         /// <param name="defines">Defines</param>
-        /// <param name="texts">Texts</param>
-        public JobLoader(ILogger<JobLoader> logger, DefineLoader defines, TextLoader texts)
+        public JobLoader(ILogger<JobLoader> logger, DefineLoader defines)
         {
             this._logger = logger;
             this._jobsData = new Dictionary<int, JobData>();
             this._defines = defines;
-            this._texts = texts;
         }
 
         /// <inheritdoc />
@@ -76,7 +73,7 @@ namespace Rhisis.Core.Resources.Loaders
 
                         if (this._jobsData.TryGetValue(jobId, out JobData jobData))
                         {
-                            jobData.Name = this._texts.Texts[group.ElementAt(1)];
+                            jobData.Name = group.ElementAt(1);
                             jobData.BaseJob = (DefineJob.Job)this._defines.Defines[group.ElementAt(2)];
                             jobData.Type = (DefineJob.JobType)this._defines.Defines[group.ElementAt(3)];
                         }

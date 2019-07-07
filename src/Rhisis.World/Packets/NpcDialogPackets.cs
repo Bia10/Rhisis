@@ -4,6 +4,7 @@ using Rhisis.Network;
 using Rhisis.Network.Packets;
 using Rhisis.World.Game.Entities;
 using Rhisis.Core.Structures.Game.Dialogs;
+using System.Linq;
 
 namespace Rhisis.World.Packets
 {
@@ -22,22 +23,29 @@ namespace Rhisis.World.Packets
                 packet.StartNewMergedPacket(player.Id, SnapshotType.RUNSCRIPTFUNC);
                 packet.Write((short)DialogOptions.FUNCTYPE_REMOVEALLKEY);
 
-                foreach (string text in dialogTexts)
+                if (dialogTexts != null && dialogTexts.Any())
                 {
-                    packet.StartNewMergedPacket(player.Id, SnapshotType.RUNSCRIPTFUNC);
-                    packet.Write((short)DialogOptions.FUNCTYPE_SAY);
-                    packet.Write(text);
-                    packet.Write(0); // quest id
+                    foreach (string text in dialogTexts)
+                    {
+                        packet.StartNewMergedPacket(player.Id, SnapshotType.RUNSCRIPTFUNC);
+                        packet.Write((short)DialogOptions.FUNCTYPE_SAY);
+                        packet.Write(text);
+                        packet.Write(0); // quest id
+                    }
+
                 }
 
-                foreach (DialogLink link in dialogLinks)
+                if (dialogLinks != null && dialogLinks.Any())
                 {
-                    packet.StartNewMergedPacket(player.Id, SnapshotType.RUNSCRIPTFUNC);
-                    packet.Write((short)DialogOptions.FUNCTYPE_ADDKEY);
-                    packet.Write(link.Title);
-                    packet.Write(link.Id);
-                    packet.Write(0);
-                    packet.Write(0);
+                    foreach (DialogLink link in dialogLinks)
+                    {
+                        packet.StartNewMergedPacket(player.Id, SnapshotType.RUNSCRIPTFUNC);
+                        packet.Write((short)DialogOptions.FUNCTYPE_ADDKEY);
+                        packet.Write(link.Title);
+                        packet.Write(link.Id);
+                        packet.Write(0);
+                        packet.Write(0);
+                    }
                 }
 
                 player.Connection.Send(packet);

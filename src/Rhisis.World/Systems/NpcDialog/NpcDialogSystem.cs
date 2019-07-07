@@ -93,10 +93,27 @@ namespace Rhisis.World.Systems.NpcDialog
 
         private bool ProcessJobChange(IPlayerEntity player, INpcEntity npc)
         {
-            if (npc.Object.Name == "MaFl_Mustang")
+            if (player.PlayerData.JobData.Type != DefineJob.JobType.JTYPE_BASE)
+                return false;
+
+            switch (npc.Object.Name)
             {
-                player.NotifySystem<LevelSystem>(new ChangeJobEventArgs((int)DefineJob.Job.JOB_MERCENARY));
-                return true;
+                case "MaFl_Mustang":
+                    player.NotifySystem<LevelSystem>(new ChangeJobEventArgs((int)DefineJob.Job.JOB_MERCENARY, true));
+                    WorldPacketFactory.SendDialog(player, new[] { "You are now a mercenary!" }, null);
+                    return true;
+                case "MaFl_Elic":
+                    player.NotifySystem<LevelSystem>(new ChangeJobEventArgs((int)DefineJob.Job.JOB_ASSIST, true));
+                    WorldPacketFactory.SendDialog(player, new[] { "You are now an assist!" }, null);
+                    return true;
+                case "MaSa_Wingyei":
+                    player.NotifySystem<LevelSystem>(new ChangeJobEventArgs((int)DefineJob.Job.JOB_MAGICIAN, true));
+                    WorldPacketFactory.SendDialog(player, new[] { "You are now a magician!" }, null);
+                    return true;
+                case "MaDa_Hent":
+                    player.NotifySystem<LevelSystem>(new ChangeJobEventArgs((int)DefineJob.Job.JOB_ACROBAT, true));
+                    WorldPacketFactory.SendDialog(player, new[] { "You are now an acrobat!" }, null);
+                    return true;
             }
 
             return false;

@@ -2,6 +2,7 @@
 using Rhisis.Core.Data;
 using Rhisis.Core.DependencyInjection;
 using Rhisis.Core.Resources;
+using Rhisis.Core.Resources.Loaders;
 using Rhisis.Core.Structures.Game;
 using Rhisis.World.Game.Core;
 using Rhisis.World.Game.Core.Systems;
@@ -19,6 +20,7 @@ namespace Rhisis.World.Systems.Leveling
     public sealed class LevelSystem : ISystem
     {
         private readonly ILogger<LevelSystem> _logger = DependencyContainer.Instance.Resolve<ILogger<LevelSystem>>();
+        private readonly ExpTableLoader _expTableLoader = DependencyContainer.Instance.Resolve<ExpTableLoader>();
 
         /// <inheritdoc />
         public WorldEntityType Type => WorldEntityType.Player;
@@ -60,7 +62,7 @@ namespace Rhisis.World.Systems.Leveling
         private void GiveExperience(IPlayerEntity player, ExperienceEventArgs e)
         {
             int baseJobLevelLimit = (int)DefineJob.JobMax.MAX_JOB_LEVEL;
-            int expertJobLevelLimit = (int)DefineJob.JobMax.MAX_JOB_LEVEL + (int)DefineJob.JobMax.MAX_EXP_LEVEL;
+            int expertJobLevelLimit = (int)DefineJob.JobMax.MAX_EXPERT_LEVEL;
 
             if ((player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_BASE && player.Object.Level >= baseJobLevelLimit) ||
                 (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_EXPERT && player.Object.Level >= expertJobLevelLimit))
@@ -165,27 +167,50 @@ namespace Rhisis.World.Systems.Leveling
         /// <param name="e">Change job event.</param>
         private void ChangeJob(IPlayerEntity player, ChangeJobEventArgs e)
         {
-            if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_BASE)
+            if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_BASE && player.Object.Level >= (int)DefineJob.JobMax.MAX_JOB_LEVEL)
             {
                 player.Object.Level = (int)DefineJob.JobMax.MAX_JOB_LEVEL;
             }
-            else if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_EXPERT)
+            else if (player.PlayerData.JobData.Type == DefineJob.JobType.JTYPE_EXPERT && player.Object.Level >= (int)DefineJob.JobMax.MAX_EXPERT_LEVEL)
             {
-                player.Object.Level = (int)DefineJob.JobMax.MAX_JOB_LEVEL + (int)DefineJob.JobMax.MAX_EXP_LEVEL;
+                player.Object.Level = (int)DefineJob.JobMax.MAX_EXPERT_LEVEL;
+            }
+            else
+            {
+                this._logger.LogWarning($"Cannot change job for player {player.Object.Name}.");
+                return;
             }
 
             player.PlayerData.Job = (DefineJob.Job)e.JobId;
             PlayerHelper.SetPoints(player, DefineAttributes.HP, PlayerHelper.GetMaxHP(player));
             PlayerHelper.SetPoints(player, DefineAttributes.MP, PlayerHelper.GetMaxMP(player));
             PlayerHelper.SetPoints(player, DefineAttributes.FP, PlayerHelper.GetMaxFP(player));
-            // TODO: Restat
+
+            if (e.Restat)
+            {
+                int destLevel = player.Object.Level < player.PlayerData.DeathLevel ? player.PlayerData.DeathLevel : player.Object.Level;
+                int statPoints = 0;
+                for (int i = 1; i < destLevel; i++)
+                {
+                    statPoints += (int)this._expTableLoader.CharacterExpTable[i].Gp;
+                    // TODO: check if master or hero
+                }
+
+                player.Statistics.StatPoints = (ushort)statPoints;
+                player.Attributes.ResetAttribute(DefineAttributes.STR, 15);
+                player.Attributes.ResetAttribute(DefineAttributes.STA, 15);
+                player.Attributes.ResetAttribute(DefineAttributes.DEX, 15);
+                player.Attributes.ResetAttribute(DefineAttributes.INT, 15);
+                WorldPacketFactory.SendUpdateState(player);
+                WorldPacketFactory.SendSpecialEffect(player, DefineSpecialEffects.XI_SYS_EXPAN01);
+            }
+
             // TODO: set skills
 
             WorldPacketFactory.SendUpdateAttributes(player, DefineAttributes.HP, PlayerHelper.GetPoints(player, DefineAttributes.HP));
             WorldPacketFactory.SendUpdateAttributes(player, DefineAttributes.MP, PlayerHelper.GetPoints(player, DefineAttributes.MP));
             WorldPacketFactory.SendUpdateAttributes(player, DefineAttributes.FP, PlayerHelper.GetPoints(player, DefineAttributes.FP));
             WorldPacketFactory.SendPlayerSetLevel(player, player.Object.Level);
-            WorldPacketFactory.SendPlayerStatsPoints(player);
             WorldPacketFactory.SendPlayerExperience(player);
             WorldPacketFactory.SendPlayerJobSkills(player);
             WorldPacketFactory.SendSpecialEffect(player, DefineSpecialEffects.XI_GEN_LEVEL_UP01);
